@@ -237,11 +237,13 @@ func getVmbFSBootFiles(ctx context.Context, scratchLayer string, parentLayers []
 		return nil, err
 	}
 
-	if _, err = os.Stat(scratchVHDPath); os.IsNotExist(err) {
-		sourceScratch := filepath.Join(uvmFolder, wclayer.UtilityVMPath, wclayer.UtilityVMScratchVhd)
-		if err := copyfile.CopyFile(ctx, sourceScratch, scratchVHDPath, true); err != nil {
-			return nil, err
-		}
+	// Always start the UVM from a fresh scratch. When a container is started
+	// again, reusing the scratch of its previous run makes the container
+	// scratch mount at c:\mounts\scsi\m0 fail with ERROR_DIR_NOT_EMPTY on
+	// ltsc2025 utility VMs.
+	sourceScratch := filepath.Join(uvmFolder, wclayer.UtilityVMPath, wclayer.UtilityVMScratchVhd)
+	if err := copyfile.CopyFile(ctx, sourceScratch, scratchVHDPath, true); err != nil {
+		return nil, err
 	}
 
 	return &uvm.WCOWBootFiles{
